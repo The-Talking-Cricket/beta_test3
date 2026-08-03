@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tris Futurist - Tic Tac Toe</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent-x: #38bdf8;
+            --accent-o: #f43f5e;
+            --text-color: #f8fafc;
+            --border-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e293b, #0f172a);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, var(--accent-x), var(--accent-o));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mode-selection {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .btn.active {
+            background: var(--accent-x);
+            color: #0f172a;
+            border-color: var(--accent-x);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+        }
+
+        .status {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            height: 28px;
+            font-weight: 500;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .cell.x {
+            color: var(--accent-x);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        .cell.o {
+            color: var(--accent-o);
+            text-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--accent-x), #0284c7);
+            border: none;
+            color: #0f172a;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .reset-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>TRIS</h1>
+
+        <div class="mode-selection">
+            <button class="btn active" id="btn-pvp" onclick="setMode('pvp')">2 Giocatori</button>
+            <button class="btn" id="btn-ai" onclick="setMode('ai')">vs Robot</button>
+        </div>
+
+        <div class="status" id="status">Turno di X</div>
+
+        <div class="board" id="board">
+            <div class="cell" onclick="makeMove(this, 0)"></div>
+            <div class="cell" onclick="makeMove(this, 1)"></div>
+            <div class="cell" onclick="makeMove(this, 2)"></div>
+            <div class="cell" onclick="makeMove(this, 3)"></div>
+            <div class="cell" onclick="makeMove(this, 4)"></div>
+            <div class="cell" onclick="makeMove(this, 5)"></div>
+            <div class="cell" onclick="makeMove(this, 6)"></div>
+            <div class="cell" onclick="makeMove(this, 7)"></div>
+            <div class="cell" onclick="makeMove(this, 8)"></div>
+        </div>
+
+        <button class="btn reset-btn" onclick="resetGame()">Nuova Partita</button>
+    </div>
+
+    <script>
+        let boardState = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let gameActive = true;
+        let vsAI = false;
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Orizzontali
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Verticali
+            [0, 4, 8], [2, 4, 6]             // Diagonali
+        ];
+
+        const statusDisplay = document.getElementById('status');
+        const cells = document.querySelectorAll('.cell');
+
+        function setMode(mode) {
+            vsAI = (mode === 'ai');
+            document.getElementById('btn-pvp').classList.toggle('active', !vsAI);
+            document.getElementById('btn-ai').classList.toggle('active', vsAI);
+            resetGame();
+        }
+
+        function makeMove(cell, index) {
+            if (boardState[index] !== "" || !gameActive) return;
+
+            executeMove(cell, index, currentPlayer);
+
+            if (gameActive && vsAI && currentPlayer === "O") {
+                setTimeout(robotMove, 400); // Ritardo per rendere la giocata più naturale
+            }
+        }
+
+        function executeMove(cell, index, player) {
+            boardState[index] = player;
+            cell.textContent = player;
+            cell.classList.add(player.toLowerCase());
+
+            if (checkWin()) {
+                statusDisplay.textContent = `Giocatore ${player} ha vinto! 🎉`;
+                gameActive = false;
+                return;
+            }
+
+            if (checkDraw()) {
+                statusDisplay.textContent = "Pareggio! 🤝";
+                gameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            statusDisplay.textContent = vsAI && currentPlayer === "O" 
+                ? "Il Robot sta pensando..." 
+                : `Turno di ${currentPlayer}`;
+        }
+
+        function robotMove() {
+            if (!gameActive) return;
+
+            // IA Semplice con un tocco di strategia
+            let availableIndices = boardState
+                .map((val, idx) => val === "" ? idx : null)
+                .filter(val => val !== null);
+
+            if (availableIndices.length === 0) return;
+
+            // 1. Prova a vincere se possibile
+            let move = findBestIndex("O");
+            // 2. Blocca il giocatore se sta per vincere
+            if (move === null) move = findBestIndex("X");
+            // 3. Prendi il centro se libero
+            if (move === null && boardState[4] === "") move = 4;
+            // 4. Mossa casuale
+            if (move === null) {
+                const randomIndex = Math.floor(Math.random() * availableIndices.length);
+                move = availableIndices[randomIndex];
+            }
+
+            const targetCell = cells[move];
+            executeMove(targetCell, move, "O");
+        }
+
+        function findBestIndex(player) {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                const values = [boardState[a], boardState[b], boardState[c]];
+                if (values.filter(v => v === player).length === 2 && values.includes("")) {
+                    return condition[values.indexOf("")];
+                }
+            }
+            return null;
+        }
+
+        function checkWin() {
+            return winningConditions.some(condition => {
+                return condition.every(index => boardState[index] === currentPlayer);
+            });
+        }
+
+        function checkDraw() {
+            return boardState.every(cell => cell !== "");
+        }
+
+        function resetGame() {
+            boardState = ["", "", "", "", "", "", "", "", ""];
+            currentPlayer = "X";
+            gameActive = true;
+            statusDisplay.textContent = "Turno di X";
+            cells.forEach(cell => {
+                cell.textContent = "";
+                cell.classList.remove('x', 'o');
+            });
+        }
+    </script>
+</body>
+</html>
